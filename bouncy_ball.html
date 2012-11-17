@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Balls</title>
+    <style>
+    * {
+        margin: 0;
+        padding: 0;
+        line-height: 0;
+    }
+    body, html { height:100%; }
+    canvas {
+        background: #222;
+    }
+    </style>
+</head>
+<body>
+    <canvas width="1000" height="600"></canvas>
+    <script>
+    var canvas = document.getElementsByTagName('canvas')[0];
+    var ctx = canvas.getContext('2d');
+    var ball = new Ball(canvas.width/2,canvas.height/2,100,10,10,'blue') ;
+    var ballIsHold = false;
+    var holdPoint = {
+        x: 0,
+        y: 0
+    }
+    var prevMousePos = {
+        x: 0,
+        y: 0
+    }
+
+    // BALL CLASS
+    function Ball(x,y,radius,vx,vy,color){
+        this.x = x;
+        this.y = y;
+        this.radius = radius;
+        this.vx = vx;
+        this.vy = vy;
+        this.color = color;
+    }
+    ctx.font = "20px Arial";
+    Ball.prototype.draw = function() {
+        ctx.fillStyle = this.color;
+        ctx.beginPath();
+        ctx.arc(this.x,this.y,this.radius,0,Math.PI*2);
+        ctx.fill();
+    };
+    Ball.prototype.updateCoordinates = function() {
+        // gravity
+        this.vy += 1;
+
+        // ground
+        if(this.y + this.radius +this.vy >= canvas.height){
+            this.vy *= -1;
+            // energy loss
+            this.vy *= (1-0.2);
+            // floor friction
+            this.vx *= (1-0.01);
+        }
+
+        // right
+        if( this.x + this.radius + this.vx >= canvas.width){
+            this.vx *= -1;
+            // energy loss
+            this.vx *= 0.8;
+        }
+
+        // left
+        if( this.x - this.radius + this.vx <= 0){
+            this.vx *= -1;
+            // energy loss
+            this.vx *= 0.8;
+        }
+
+        // top
+        if( this.y - this.radius + this.vy <= 0 ){
+            this.vy *= -1;
+            // energy loss
+            this.vy *= 0.8;
+        }
+
+        this.x += this.vx;
+        this.y += this.vy;
+
+        // bug fix
+        if(this.y + this.radius >= canvas.height && this.vy > 0){
+            this.vy = 0;
+            this.y = canvas.height - this.radius ;
+        }
+    };
+
+    // GAME LOOP
+    setInterval(function(){
+        ctx.fillStyle = "rgba(22,22,22,0.4)" ;
+        ctx.fillRect(0,0,canvas.width, canvas.height);
+        if(!ballIsHold)
+            ball.updateCoordinates();
+        ball.draw();
+        
+    },30);
+
+    canvas.addEventListener('mousedown',function(e){
+        var mouseX = e.clientX - canvas.offsetLeft ;
+        var mouseY = e.clientY - canvas.offsetTop ;
+
+        if(Math.sqrt(Math.pow(mouseX - ball.x,2)+Math.pow(mouseY-ball.y,2))
+            < ball.radius)
+        {
+            ballIsHold = true ;
+            holdPoint.x = ball.x - mouseX ;
+            holdPoint.y = ball.y - mouseY ;
+        }
+    })
+
+    var skip = 0;
+    canvas.addEventListener('mousemove',function(e){
+        if(ballIsHold){
+            var mouseX = e.clientX - canvas.offsetLeft ;
+            var mouseY = e.clientY - canvas.offsetTop ;
+
+            var newx = mouseX + holdPoint.x;
+            var newy = mouseY + holdPoint.y;
+            if(newx - ball.radius < 0) 
+                newx = ball.radius;
+            else if(newx + ball.radius> canvas.width)
+                newx = canvas.width - ball.radius ;
+
+            if(newy - ball.radius< 0) 
+                newy = ball.radius;
+            else if(newy + ball.radius> canvas.height)
+                newy = canvas.height - ball.radius ;
+
+            ball.x = newx ;
+            ball.y = newy ;
+            if(skip > 1){
+                prevMousePos.x = mouseX ;
+                prevMousePos.y = mouseY ;
+                skip = 0;
+            }
+            skip++;
+        }
+
+    })
+
+    canvas.addEventListener('mouseup',function(e){
+        if(ballIsHold){
+            var mouseX = e.clientX - canvas.offsetLeft ;
+            var mouseY = e.clientY - canvas.offsetTop ;
+            ballIsHold = false ;
+            ball.vx = (mouseX - prevMousePos.x)*10 ;
+            ball.vy = (mouseY - prevMousePos.y)*10 ;
+            console.log("ball.vx = "+mouseX+" - "+prevMousePos.x+" = "+ball.vx)
+        }
+    })
+
+    </script>
+</body>
+</html>
