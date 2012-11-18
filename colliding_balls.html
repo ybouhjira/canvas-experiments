@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <title>Colliding balls</title>
+    <style>
+    * {
+        margin: 0;
+        padding: 0;
+        line-height: 0;
+    }
+    body, html { height:100%; }
+    canvas {
+        background: #222;
+        display: block;
+        margin: auto;
+    }
+    table{
+        width: 100%;
+        height: 100%;
+    }
+    td{
+        vertical-align: middle;
+    }
+    </style>
+</head>
+<body>
+    <table>
+        <tr>
+            <td><canvas width="800" height="600"></canvas></td>
+        </tr>
+    </table>
+    
+    <script>
+        // BALL CLASS
+        function Ball(x,y,radius,vx,vy,color){
+            this.x = x;
+            this.y = y;
+            this.radius = radius;
+            this.vx = vx;
+            this.vy = vy;
+            this.color = color || '#abe';
+        }
+        Ball.prototype.draw = function() {
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(this.x,this.y,this.radius,0,Math.PI*2);
+            ctx.fill();
+        };
+        Ball.prototype.updateCoordinates = function() {
+            for(var i in balls){
+                //this.vy += 0.9;
+                // ground
+                if(this.y + this.radius +this.vy >= canvas.height){
+                    this.vy *= -1;
+                    // energy loss
+                    this.vy *= (1-0.2);
+                }
+
+                // right
+                if( this.x + this.radius + this.vx >= canvas.width){
+                    this.vx *= -1;
+                    // energy loss
+                    this.vx *= 0.2;
+                }
+
+                // left
+                if( this.x - this.radius + this.vx <= 0){
+                    this.vx *= -1;
+                    // energy loss
+                    this.vx *= 0.2;
+                }
+
+                // top
+                if( this.y - this.radius + this.vy <= 0 ){
+                    this.vy *= -1;
+                    // energy loss
+                    this.vy *= 0.2;
+                }
+
+                // OTHER BALLS ===============================================
+                if(balls[i] != this){
+                    var b = balls[i];
+                    var d = distance(this.x, this.y, b.x, b.y);
+                    if(d <= this.radius+b.radius){
+                        //this.vx += (this.x - b.x)/d ;
+                        //this.vy += (this.y - b.y)/d ;
+                        this.vx += (this.x - b.x)/20 ;
+                        this.vy += (this.y - b.y)/20 ;
+                    }
+                }
+            }
+            var newx = this.x + this.vx ;
+            var newy = this.y + this.vy ;
+            if( 0<=newx-this.radius && newx+this.radius <= canvas.width)
+                this.x = newx ;
+            if( 0<=newy-this.radius && newy+this.radius <= canvas.height)
+                this.y = newy ;
+        };
+        function distance(x1,y1,x2,y2){
+            return Math.sqrt(Math.pow(x1-x2,2)+Math.pow(y1-y2,2));
+        }
+    </script>
+    <script>
+    var canvas = document.getElementsByTagName('canvas')[0];
+    var ctx = canvas.getContext('2d');
+    var balls = [];
+    
+    canvas.addEventListener('click',function(e){
+        var mouseX = e.clientX - this.offsetLeft ;
+        var mouseY = e.clientY - this.offsetTop ;
+        var r = parseInt(Math.random()*255); 
+        var g = parseInt(Math.random()*255); 
+        var b = parseInt(Math.random()*255);
+        var color = 'rgb('+r+','+g+','+b+')';
+        var vx = Math.random()*4-2; 
+        var vy = Math.random()*4-2; 
+        var b = new Ball(mouseX, mouseY, Math.random()*20+20,vx,vy,color);
+        balls.push(b);
+    })
+
+    function clearCanvas(){
+        ctx.fillStyle = "rgba(22,22,22,0.4)" ;
+        ctx.fillRect(0,0,canvas.width, canvas.height);
+    }
+    // GAME LOOP
+    setInterval(function(){
+        clearCanvas();
+        for(var i in balls)
+            balls[i].updateCoordinates();
+        for(var i in balls)
+            balls[i].draw();  
+    },30);
+
+    </script>
+</body>
+</html>
