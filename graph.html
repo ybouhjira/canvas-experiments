@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Graphs</title>
+    <meta charset="utf-8">
+    <style>
+        *{margin: 0; padding: 0}
+        table{
+            position: absolute;
+            width: 100%; 
+            height: 100%;
+        }
+        td{
+            vertical-align: middle;
+            text-align: center;
+        }
+        canvas{
+            border: 1px solid black;
+            box-shadow: 0 0 5px #000;
+        }
+    </style>
+</head>
+<body>
+    <table><tr><td>
+                <canvas width="960" height="600" id="graph-canvas"></canvas>
+    </td></tr></table>
+    
+    <script>
+        var canvas = document.getElementById("graph-canvas");
+        var ctx = canvas.getContext("2d");
+        var nodes = [] ;
+        var graph = new Graph();
+        var NODE_RADIUS = 10;
+
+        // THE VERTEX CLASS ====================================================
+        function Vertex(name){
+            this.name = name ;
+        }
+
+        // THE GRAPH CLASS =====================================================
+        function Graph(){
+            this._verticies = [];
+            this._edges = [];
+        }
+        Graph.prototype.add = function(name) {
+             this._verticies.push(new Vertex(name));
+             return this;
+        };
+        Graph.prototype.vertex = function(name) {
+            for(var i in this._verticies){
+                if(this._verticies[i].name == name){
+                    return this._verticies[i] ;
+                }
+            }
+        };
+        Graph.prototype.link = function(v1,v2,distance) {
+            this._edges.push({
+                from: v1,
+                to: v2,
+                distance: distance
+            });
+        };
+        Graph.prototype.areLinked = function(v1,v2) {
+            for( i in this._edges){
+                if((this._edges[i].from == v1 && this._edges[i].to == v2)
+                || (this._edges[i].from == v2 && this._edges[i].to == v1)
+                ){
+                    return true;
+                }
+            }
+            return false;
+        };
+        Graph.prototype.weight = function(v) {
+            var w=0;
+            for(i in this._verticies){
+                if(_verticies[i] == v)
+                    w++;
+            }
+            return w;
+        };
+
+        // THE NODE CLASS ======================================================
+        function Node(x,y,vertex){
+            this.x = x;
+            this.y = y;
+            this.vx = 0;
+            this.vy = 0;
+            this.vertex = vertex ;
+            this.beingDraged = false ;
+        }
+        Node.prototype.draw = function() {
+            ctx.fillStyle = 'orange';
+            ctx.strokeStyle = '#09d';
+            ctx.lineWidth = 2;
+            ctx.font = 'bold 20px Arial' ;
+
+            ctx.beginPath();
+            ctx.arc(this.x,this.y,NODE_RADIUS,0,Math.PI*2);
+            ctx.stroke();
+            ctx.fill();
+            ctx.fillStyle = 'black';
+            ctx.fillText(this.vertex.name, this.x, this.y - 12) ;
+        };
+
+        // |||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||
+        function distance(x1, y1, x2, y2){
+            return Math.sqrt( Math.pow(x1-x2,2) + Math.pow(y1-y2,2) )
+        }
+        function drawEdges(){
+            ctx.strokeStyle = 'black';
+            for( i in graph._edges ){
+
+                var fromNode ;
+                for( j in nodes ){
+                    if(nodes[j].vertex == graph._edges[i].from ){
+                        fromNode = nodes[j] ;
+                    }
+                }
+
+                var toNode ;
+                for( k in nodes ){
+                    if(nodes[k].vertex == graph._edges[i].to ){
+                        toNode = nodes[k] ;
+                    }
+                }
+
+                ctx.beginPath();
+                ctx.moveTo(fromNode.x, fromNode.y);
+                ctx.lineTo(toNode.x, toNode.y);
+                ctx.stroke();
+
+                var vx = toNode.x - fromNode.x;
+                var vy = toNode.y - fromNode.y;
+                var fix = 0;
+                if(fromNode.x - toNode.x < 0)
+                    fix = Math.PI ;
+                ctx.beginPath();
+                ctx.moveTo(toNode.x, toNode.y);
+                ctx.arc(toNode.x, toNode.y, 20
+                    ,Math.atan(vy/vx)+0.2+fix
+                    ,Math.atan(vy/vx)-0.2+fix,true);
+                ctx.fill();
+                ctx.stroke();
+            }
+        }
+        function updateNodesCoordinates(){
+            for( i in nodes ){
+                if(!nodes[i].beingDraged){
+                    var nd = nodes[i] ;
+                    for( j in nodes ){
+                        var n = nodes[j] ;
+                        var dx = 0;
+                        var dy = 0;
+                        if(nd != n && !n.beingDraged){
+                            var linked = graph.areLinked(nd.vertex, n.vertex);
+                            var d = distance( nd.x, nd.y, n.x, n.y );
+                            if( d < 100 && !linked || linked && d<180){
+                                dx += ( nd.x - n.x )*20 / d ;
+                                dy += ( nd.y - n.y )*20 / d ;
+                            }else if(d > 300 && linked){
+                                var w = graph.weight(n.vertex)
+                                dx -= ( nd.x - n.x )*20 / 0.01*w*d;
+                                dy -= ( nd.y - n.y )*20 / 0.01*w*d;
+                            }
+                        }else if(
+                            n.beingDraged 
+                            && distance( nd.x, nd.y, n.x, n.y )<=NODE_RADIUS*2
+                            && !graph.areLinked(nd.vertex, n.vertex)
+                        ){
+                            graph.link(nd.vertex, n.vertex, 1);
+                        }
+                        nd.x += dx ;
+                        nd.y += dy ;
+                    }
+                    //nd.x += nd.vx ;
+                    //nd.y += nd.vy ;
+
+                    //nd.vx *= 0.9 ;
+                    //nd.vy *= 0.9 ;
+                }
+            }
+        }
+        function clearCanvas(){
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+        }
+        setInterval(function(){
+            clearCanvas();
+
+            // draw nodes
+            updateNodesCoordinates();
+            drawEdges();
+            for( i in nodes ){
+                nodes[i].draw();
+            }
+        },30);
+
+        var nodeNumber = 0;
+        canvas.addEventListener('click',function(e){
+            if(!mouseup){
+                var mouseX = e.clientX - this.offsetLeft ;
+                var mouseY = e.clientY - this.offsetTop ;
+            
+                nodes.push(new Node(mouseX+10,mouseY+10,
+                new Vertex('V'+(nodeNumber++))));
+            }
+        });
+
+        canvas.addEventListener('mousedown',function(e){
+            var mouseX = e.clientX - this.offsetLeft ;
+            var mouseY = e.clientY - this.offsetTop ;
+
+            for( i in nodes ){
+                if(distance(nodes[i].x,nodes[i].y,mouseX,mouseY)<20){
+                    nodes[i].beingDraged = true ;
+                    break;
+                }
+            }
+        })
+
+        canvas.addEventListener('mousemove',function(e){
+            var mouseX = e.clientX - this.offsetLeft ;
+            var mouseY = e.clientY - this.offsetTop ;
+
+            for( i in nodes ){
+                if(nodes[i].beingDraged){
+                    nodes[i].x = mouseX ;
+                    nodes[i].y = mouseY ;
+                    break;
+                }
+            }
+        })
+
+        
+        canvas.addEventListener('mouseup',function(){
+            for( i in nodes ){
+                if(nodes[i].beingDraged){
+                    nodes[i].beingDraged  = false ;
+                    mouseup = true;
+                    return;
+                }
+            }
+            mouseup = false;
+        })
+
+
+    </script>
+</body>
+</html>
