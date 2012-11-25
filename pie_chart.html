@@ -1,0 +1,66 @@
+<!DOCTYPE HTML>
+<head>
+	<meta http-equiv="content-type" content="text/html" />
+	<meta name="author" content="Mr MoHanD" />
+    <meta charset="utf-8"/>
+	<title>Untitled 2</title>
+    <style>
+        canvas{
+            border: 1px black dashed ;
+        }
+    </style>
+</head>
+
+<body>
+<canvas width="800" height="600" id="my-canvas"></canvas>
+<script>
+    var canvas = document.getElementById("my-canvas");
+    var ctx = canvas.getContext('2d');
+    
+    function drawPie(x,y,radius,curAngle,angle,color){
+        ctx.beginPath();
+        ctx.moveTo(x,y);
+        ctx.arc(x,y,radius,curAngle,angle);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.fillStyle = color;
+        ctx.fill();
+    }
+    
+    function drawPieChart(data,x,y,radius){
+        // Calculating the sum of the values
+        var sum = 0 ;
+        for( var i in data )
+            sum += data[i].val ;
+
+        ctx.font = "20px Arial";
+        var curAngle = 0 , angle = 0, ylegend = y - radius;
+        for(var i in data ){
+            var cur = data[i].val ;
+            angle += (2*Math.PI*cur)/sum ;
+            
+            drawPie(x,y,radius,curAngle,angle,data[i].color);
+            ctx.fillRect(x + radius + 20,ylegend , 20 ,20 );
+            ctx.fillText(data[i].txt,x + radius + 60,ylegend+20);
+            curAngle = angle ;
+            ylegend += 50 ;
+        }
+    }
+    
+    function ChartElement(val,txt,color){
+        this.val = val ;
+        this.txt = txt ;
+        this.color = color;
+    }
+
+    drawPieChart([
+        new ChartElement(140,'Value 1','#a10'),
+        new ChartElement(122,'a second value','#5a0'),
+        new ChartElement(200,'a third value ','#05d'),
+        new ChartElement(45,'something ','#a0d'),
+        new ChartElement(200,'something else ','#55f'),
+        ],400,300,200);
+    
+</script>
+</body>
+</html>
